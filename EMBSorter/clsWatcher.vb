@@ -6,14 +6,27 @@
 ' 
 ' Для изменения этого шаблона используйте Сервис | Настройка | Кодирование | Правка стандартных заголовков.
 '
+Imports System.Linq
+Imports System.IO
+Imports System.Threading
+Imports System.Timers
+Imports System.Collections
+
+
 Public Class clsWatcher
-	Private WithEvents _fsw As New System.IO.FileSystemWatcher
+	Public WithEvents _fsw As New System.IO.FileSystemWatcher
 	Private WithEvents _timerWaitNext As New System.Timers.Timer
 	Private WithEvents _timerTick As New System.Timers.Timer
+
+		
 	Private _FolderName As String
 	Private _FileMask As String
 	Private _sec As Integer
-
+	
+	Private Shared iniFile As New ini(IO.Path.ChangeExtension(Application.ExecutablePath,".ini"))
+	
+	' Private cEFiles000 As Collection
+	
 	Private Class cEFile
 		Public FileName As String = ""
 		Public PromoName As String = ""
@@ -33,24 +46,21 @@ Public Class clsWatcher
 	
 	
 	
+	
 		
 	' <Subs>
-	Public Sub New(ByVal FolderName, ByVal FileMask)
-		
+	Public Sub New(ByVal FolderName As String, ByVal FileMask As String)
+		_InitializeTimers()
 		_FolderName = FolderName
 		_FileMask = FileMask
-	End Sub
-	
-	
-	Public Sub Run()
 		_fsw.Path = _FolderName
 		_fsw.Filter = _FileMask
 		_fsw.IncludeSubdirectories = False
 		AddHandler _fsw.Created, AddressOf _OnFileCreate
 		AddHandler _fsw.Renamed, AddressOf _OnFileCreate
 		_fsw.EnableRaisingEvents = True
-		'		_timerWaitNext.Start
 	End Sub
+	
 
 	' </Subs>
 	
@@ -60,7 +70,8 @@ Public Class clsWatcher
             Return _timerWaitNext.Interval
         End Get
         Set(ByVal value As Double)
-            _timerWaitNext.Interval = value
+        	_timerWaitNext.Interval = value
+        	Debug.WriteLine("TimerWaitNextInterval_Set")
         End Set
 	End Property
 	
@@ -95,37 +106,47 @@ Public Class clsWatcher
 	'</Properties>
 	
 	'<Main>
-	Private Sub New()
-		AddHandler _timerWaitNext.Elapsed, AddressOf _timerWaitNextElapsed
-'		AddHandler _timerTick.Elapsed, AddressOf _timerTickElapsed
-		_timerWaitNext.Interval = 23000
-'		_timerTick.Interval = 1000
-	End Sub
+
 	
 	Private Sub _timerWaitNextElapsed()
+		Debug.WriteLine("timerWaitNextElapsed")
 		_timerWaitNext.Stop
-'		_timerTick.Stop
+		_timerTick.Stop
 		_MoveFiles
 	End Sub
 	
 	Private Sub _OnFileCreate(sender As Object, e As System.IO.FileSystemEventArgs)
 	'	notifyIcon.ShowBalloonTip(20000, Now.ToString & ". Обнаружен новый файл", e.Name, ToolTipIcon.Info)
-		_timerWaitNext.Start ' MainTimerStart()
+		_timerWaitNext.Stop 
+		_timerTick.Stop
+		Debug.WriteLine("_OnFileCreate")
+		' _InitializeTimers()
+		_sec = 0
+		_timerWaitNext.Start 
+		_timerTick.Start
+		' MainTimerStart()
 	End Sub		
 	
-	Private Sub _MoveFiles()
-		
+	Private Sub _InitializeTimers()
+		_sec = 0
+		_timerTick.Stop
+		_timerWaitNext.Stop
+		_timerWaitNext.Interval = 25000
+		_timerTick.Interval = 1000
+		AddHandler _timerWaitNext.Elapsed, AddressOf _timerWaitNextElapsed 
+		AddHandler _timerTick.Elapsed, AddressOf _timerTickElapsed
 	End Sub
 	
-'	Private Sub _timerTickElapsed()
-'		Debug.WriteLine ("TimerTickElapsed", _sec.ToString)
-'		_sec = _sec + 1
-''		notifyIcon.ShowBalloonTip(20000, "...", _
-''			"Ожидание... " & FormatDateTime(TimeSerial(0,0,CInt(((timer1.Interval/1000) - _sec))), DateFormat.LongTime).ToString, _
-''			ToolTipIcon.Info)
+	
+	Private Sub _timerTickElapsed()
+		_sec = _sec + 1
+		Debug.WriteLine (_timerWaitNext.Interval/1000 - _sec, "TimerTickElapsed")
+'		notifyIcon.ShowBalloonTip(20000, "...", _
+'			"Ожидание... " & FormatDateTime(TimeSerial(0,0,CInt(((timer1.Interval/1000) - _sec))), DateFormat.LongTime).ToString, _
+'			ToolTipIcon.Info)
 '		timerTick()
-'	End Sub
-'	
+	End Sub
+	
 '	Public Sub timerTick()
 '		
 '	End Sub
@@ -133,26 +154,26 @@ Public Class clsWatcher
 
 
 #Region "Работа с файлами"
-	Private Sub MoveFiles()
+	Private Sub _MoveFiles()
 		Dim EFile As cEFile
 		Dim strOutPath As String
 		Dim strOutFile As String
 		Dim dt As String = Date.Now.ToString("HHmmssfff")
-		Dim EFiles As Collection = GetEFiles(cFilePath, "*.001")
+		Dim EFiles As List(Of cEFile) = GetEFiles(_FolderName, _FileMask)
 		For Each EFile In EFiles
 			'FileListView.Items.Add(f.FullName).SubItems.Add(String.Format("{0}.{1:D3}", f.CreationTime,f.CreationTime.Millisecond))
-			strOutPath = Path.Combine(cFilePath, _
+			strOutPath = Path.Combine(_FolderName, _
 				String.Format("{0:yyyyMMdd}", Date.Now), _
 				String.Format("{0}_{1}__{2}_{3}@{4}", EFile.PlasticID, GetEFilesQty(EFiles), EFile.PlasticCode, EFile.PromoName, dt))
-			Debug.WriteLine (strOutPath)
 			' EFile = GetPromoNameOfFile(f.FullName)
 			strOutFile = IO.Path.Combine(strOutPath, IO.path.GetFileName(EFile.FileName))
 			If Not IO.Directory.Exists(strOutPath) Then CreateDirectoryRecursive(strOutPath)
 			IO.File.Move(EFile.FileName, strOutFile)
+			Debug.WriteLine(strOutFile, "Move")
 		Next		
 	End Sub
 	
-	Private Function GetEFilesQty(EFiles As Collection) As Integer
+	Private Function GetEFilesQty(EFiles As List(Of cEFile)) As Integer
 		Dim Qty As Integer = 0		
 		For Each EFile As cEFile In EFiles
 			Qty = Qty + EFile.CardQty
@@ -166,8 +187,8 @@ Public Class clsWatcher
 		IO.Directory.CreateDirectory(strDirectoryName)
 	End Sub
 	
-	Private Function GetEFiles(strPath As String, strFileMask As String) as Collection
-        Dim RetVal As New Collection
+	Private Function GetEFiles(strPath As String, strFileMask As String) as List(Of cEFile)
+        Dim RetVal As New List(Of cEFile)
         Dim DirInfo as New IO.DirectoryInfo(strPath)
 		Dim fls As IEnumerable = From fl In DirInfo.EnumerateFiles(strFileMask) _
 			Order By fl.CreationTime
@@ -203,11 +224,21 @@ Public Class clsWatcher
 	        End Try
 	        If ef.PlasticID = "" Then
 	        	iniFile.WriteString("PLASTIC_ID", ef.PromoName, "")
-	        	notifyIcon.ShowBalloonTip(20000, ef.PromoName, "Неизвестный продукт", ToolTipIcon.Warning)
+'	        	notifyIcon.ShowBalloonTip(20000, ef.PromoName, "Неизвестный продукт", ToolTipIcon.Warning)
 	        End If
-	        RetVal.Add(ef, ef.FileName)
+	        RetVal.Add(ef)
         Next
 		Return RetVal       
+	End Function	
+	
+	
+	
+	
+	
+	
+	Private Function GetPromo(strIN As String) As String
+		strIN = strIN.Substring(InStr(strIN," ")).Trim
+		Return strIN.Remove(strIN.LastIndexOf(" "))
 	End Function	
 	
 #End Region
