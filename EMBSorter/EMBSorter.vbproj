@@ -16,6 +16,8 @@
     <DelaySign>False</DelaySign>
     <RunCodeAnalysis>False</RunCodeAnalysis>
     <RunSourceAnalysis>False</RunSourceAnalysis>
+    <ApplicationIcon>C:\paul\!icons\FatCow\ICO\Card-Front.ico</ApplicationIcon>
+    <NoWin32Manifest>False</NoWin32Manifest>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Platform)' == 'x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -58,12 +60,12 @@
   <ItemGroup>
     <Compile Include="clsWatcher.vb" />
     <Compile Include="ini.vb" />
-    <Compile Include="NotificationIcon.vb" />
+    <Compile Include="mEMBSorter.vb" />
     <Compile Include="Properties\AssemblyInfo.vb" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="NotificationIcon.resx">
-      <DependentUpon>NotificationIcon.vb</DependentUpon>
+    <EmbeddedResource Include="mEMBSorter.resx">
+      <DependentUpon>mEMBSorter.vb</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
@@ -77,6 +79,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="EMBSorter.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.VisualBasic.Targets" />
 </Project>

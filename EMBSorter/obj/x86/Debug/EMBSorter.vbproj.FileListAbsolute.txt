@@ -19,7 +19,6 @@ U:\My Documents\SharpDevelop Projects\EMBSorter\EMBSorter\bin\Debug\EMBSorter.ex
 \\rccf.ru\profiles\Office Users\pnosov\My Documents\SharpDevelop Projects\EMBSorter\EMBSorter\bin\Debug\EMBSorter.exe.config
 \\rccf.ru\profiles\Office Users\pnosov\My Documents\SharpDevelop Projects\EMBSorter\EMBSorter\obj\x86\Debug\GenerateResource.read.4.tlog
 U:\My Documents\SharpDevelop Projects\svn\embsorter\EMBSorter\obj\x86\Debug\ResolveAssemblyReference.cache
-U:\My Documents\SharpDevelop Projects\svn\embsorter\EMBSorter\obj\x86\Debug\EMBSorter.NotificationIcon.resources
 U:\My Documents\SharpDevelop Projects\svn\embsorter\EMBSorter\obj\x86\Debug\GenerateResource.read.1.tlog
 U:\My Documents\SharpDevelop Projects\svn\embsorter\EMBSorter\obj\x86\Debug\GenerateResource.read.4.tlog
 U:\My Documents\SharpDevelop Projects\svn\embsorter\EMBSorter\obj\x86\Debug\GenerateResource.write.1.tlog
@@ -28,3 +27,5 @@ U:\My Documents\SharpDevelop Projects\svn\embsorter\EMBSorter\obj\x86\Debug\EMBS
 U:\My Documents\SharpDevelop Projects\svn\embsorter\EMBSorter\bin\Debug\EMBSorter.exe.config
 U:\My Documents\SharpDevelop Projects\svn\embsorter\EMBSorter\bin\Debug\EMBSorter.exe
 U:\My Documents\SharpDevelop Projects\svn\embsorter\EMBSorter\bin\Debug\EMBSorter.pdb
+U:\My Documents\SharpDevelop Projects\svn\embsorter\EMBSorter\obj\x86\Debug\EMBSorter.cEMBSorter.resources
+U:\My Documents\SharpDevelop Projects\svn\embsorter\EMBSorter\bin\Debug\EMBSorter.ini

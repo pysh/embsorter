@@ -22,10 +22,39 @@ Public Class clsWatcher
 	Private _FolderName As String
 	Private _FileMask As String
 	Private _sec As Integer
+	Private _strNewFilename As String
 	
 	Private Shared iniFile As New ini(IO.Path.ChangeExtension(Application.ExecutablePath,".ini"))
 	
-	' Private cEFiles000 As Collection
+	
+	
+	
+	Public Class ShowPopupEventArgs
+		Inherits EventArgs
+		Implements IDisposable
+		Public Property strMessage As String = ""
+		Public Property strHeader As String = ""
+		Public Property intInterval As Integer = 0
+		Public Property tipIcon As ToolTipIcon = ToolTipIcon.Info
+		Public Sub Dispose() Implements IDisposable.Dispose
+		End Sub
+	End Class
+	
+	Public Event ShowPopup As EventHandler(Of ShowPopupEventArgs)
+	
+	Protected Overridable Sub OnShowPopup(e As ShowPopupEventArgs)
+		RaiseEvent ShowPopup(Me, e)
+	End Sub
+	
+	Private Sub _ShowPopup(timeOut As Integer, tipTitle As String, tipText As String, tipIcon As ToolTipIcon)' strMessage As String, strHeader As String, intInterval As Integer,)
+		Using args As New ShowPopupEventArgs
+			args.intInterval = 2000
+			args.strHeader = tipTitle
+			args.strMessage = tipText
+			OnShowPopup(args)
+		End Using
+	End Sub
+	
 	
 	Private Class cEFile
 		Public FileName As String = ""
@@ -109,15 +138,23 @@ Public Class clsWatcher
 
 	
 	Private Sub _timerWaitNextElapsed()
-		Debug.WriteLine("timerWaitNextElapsed")
 		_timerWaitNext.Stop
 		_timerTick.Stop
+		Debug.WriteLine("timerWaitNextElapsed")
 		_MoveFiles
 	End Sub
 	
 	Private Sub _OnFileCreate(sender As Object, e As System.IO.FileSystemEventArgs)
-	'	notifyIcon.ShowBalloonTip(20000, Now.ToString & ". Обнаружен новый файл", e.Name, ToolTipIcon.Info)
-		_timerWaitNext.Stop 
+'		notifyIcon.ShowBalloonTip(20000, Now.ToString & ". Обнаружен новый файл", e.Name, ToolTipIcon.Info)
+		_strNewFilename = e.FullPath
+		Using args As New ShowPopupEventArgs
+			args.intInterval = 1000
+			args.strMessage = "Обнаружен новый файл: " & IO.Path.GetFileName(e.Name)
+			args.strHeader = String.Format("{0} - {1}", Now(), IO.Path.GetDirectoryName(Me._FolderName))
+			OnShowPopup(args)
+		End Using
+		
+		_timerWaitNext.Stop
 		_timerTick.Stop
 		Debug.WriteLine("_OnFileCreate")
 		' _InitializeTimers()
@@ -141,17 +178,19 @@ Public Class clsWatcher
 	Private Sub _timerTickElapsed()
 		_sec = _sec + 1
 		Debug.WriteLine (_timerWaitNext.Interval/1000 - _sec, "TimerTickElapsed")
-'		notifyIcon.ShowBalloonTip(20000, "...", _
-'			"Ожидание... " & FormatDateTime(TimeSerial(0,0,CInt(((timer1.Interval/1000) - _sec))), DateFormat.LongTime).ToString, _
-'			ToolTipIcon.Info)
-'		timerTick()
+		Using args As New ShowPopupEventArgs
+			args.intInterval = 30000
+			args.strMessage = "Обнаружен новый файл: " & IO.Path.GetFileName(_strNewFilename) & vbCrLf & _
+							  "Ожидание... " & (_timerWaitNext.Interval/1000 - _sec).ToString & " сек."
+			args.strHeader = String.Format("{0} - {1}", Now(), IO.Path.GetDirectoryName(Me._FolderName))
+			args.tipIcon = ToolTipIcon.None
+			OnShowPopup(args)
+		End Using
 	End Sub
-	
-'	Public Sub timerTick()
-'		
-'	End Sub
 
-
+	Public Sub MoveFiles()
+		_timerWaitNextElapsed()
+	End Sub
 
 #Region "Работа с файлами"
 	Private Sub _MoveFiles()
@@ -170,11 +209,17 @@ Public Class clsWatcher
 			If Not IO.Directory.Exists(strOutPath) Then CreateDirectoryRecursive(strOutPath)
 			IO.File.Move(EFile.FileName, strOutFile)
 			Debug.WriteLine(strOutFile, "Move")
-		Next		
+		Next
+		Using args As New ShowPopupEventArgs
+			args.intInterval = 0
+			args.strMessage = "Перемещено файлов: " & EFiles.Count.ToString
+			args.strHeader = String.Format("{0} - {1}", Now(), IO.Path.GetDirectoryName(Me._FolderName))
+			OnShowPopup(args)
+		End Using
 	End Sub
 	
 	Private Function GetEFilesQty(EFiles As List(Of cEFile)) As Integer
-		Dim Qty As Integer = 0		
+		Dim Qty As Integer = 0
 		For Each EFile As cEFile In EFiles
 			Qty = Qty + EFile.CardQty
 		Next
@@ -220,7 +265,7 @@ Public Class clsWatcher
 	            End Using
 	        Catch e As Exception
 	            ' Let the user know what went wrong.
-	            MessageBox.Show(e.Message, "The file could not be read", MessageBoxButtons.OK, MessageBoxIcon.Error)
+	            MessageBox.Show(e.Message & vbCrLf, "The file could not be read", MessageBoxButtons.OK, MessageBoxIcon.Error)
 	        End Try
 	        If ef.PlasticID = "" Then
 	        	iniFile.WriteString("PLASTIC_ID", ef.PromoName, "")
@@ -231,15 +276,14 @@ Public Class clsWatcher
 		Return RetVal       
 	End Function	
 	
-	
-	
-	
-	
-	
+
 	Private Function GetPromo(strIN As String) As String
-		strIN = strIN.Substring(InStr(strIN," ")).Trim
-		Return strIN.Remove(strIN.LastIndexOf(" "))
-	End Function	
+		strIN = strIN.Remove(strIN.LastIndexOf(" ")).TrimEnd
+		If strIN.IndexOf(" ") > -1 Then
+			strIN = strIN.Substring(strIN.IndexOf(" "))
+		End If
+		Return strIN.Trim
+	End Function
 	
 #End Region
 
